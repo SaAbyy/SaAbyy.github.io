@@ -1,0 +1,49 @@
+---
+layout: default
+title: Writeups
+permalink: /writeups/
+---
+
+<div class="container">
+  <section class="section">
+    <div class="section-header"><h2>Writeups</h2></div>
+
+    <div class="filters" id="filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="web">Web</button>
+      <button class="filter-btn" data-filter="pwn">Pwn</button>
+      <button class="filter-btn" data-filter="rev">Reverse</button>
+      <button class="filter-btn" data-filter="crypto">Crypto</button>
+      <button class="filter-btn" data-filter="forensics">Forensics</button>
+      <button class="filter-btn" data-filter="osint">OSINT</button>
+      <button class="filter-btn" data-filter="misc">Misc</button>
+      <button class="filter-btn" data-filter="steg">Steg</button>
+    </div>
+
+    <div class="card-list" id="writeup-list">
+      {% assign sorted_writeups = site.writeups | sort: 'date' | reverse %}
+      {% for writeup in sorted_writeups %}
+      <a href="{{ writeup.url | relative_url }}"
+         class="writeup-card"
+         data-category="{{ writeup.category | downcase }}">
+        <div>
+          <div class="card-title">
+            {% if writeup.platform %}{{ writeup.platform }} — {% endif %}{{ writeup.title }}
+          </div>
+          <div class="card-meta">
+            {% if writeup.category %}<span class="tag tag-{{ writeup.category | downcase }}">{{ writeup.category }}</span>{% endif %}
+            {% if writeup.tags %}
+              {% for tag in writeup.tags limit: 2 %}
+              <span class="tag tag-{{ tag | downcase }}">{{ tag }}</span>
+              {% endfor %}
+            {% endif %}
+            <span>{{ writeup.date | date: "%d %b %Y" }}</span>
+            {% if writeup.points %}<span>{{ writeup.points }} pts</span>{% endif %}
+          </div>
+        </div>
+        {% if writeup.difficulty %}<span class="diff diff-{{ writeup.difficulty | downcase }}">{{ writeup.difficulty }}</span>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+</div>

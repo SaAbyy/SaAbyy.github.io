@@ -1,0 +1,40 @@
+title: "SaAby"
+description: "CTF player orienté sécurité offensive — pentest web, Active Directory, forensics. HTB ProLabs Dante & P.O.O. FCSC 2026 top 6%."
+url: "https://saabyy.github.io"
+baseurl: ""
+
+author:
+  name: "SaAby"
+  email: "Sa4by@proton.me"
+  github: "SaAbyy"
+  hackthebox: "1233395"
+
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+collections:
+  writeups:
+    output: true
+    permalink: /writeups/:slug/
+  research:
+    output: true
+    permalink: /research/:slug/
+
+defaults:
+  - scope:
+      path: ""
+      type: "writeups"
+    values:
+      layout: "writeup"
+  - scope:
+      path: ""
+      type: "research"
+    values:
+      layout: "post"
+
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
