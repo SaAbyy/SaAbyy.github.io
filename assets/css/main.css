@@ -194,6 +194,7 @@ body {
 .tag-misc     { background: rgba(100,100,100,0.1); color: #9ca3af; }
 .tag-osint    { background: rgba(251,146,60,0.08); color: #fb923c; }
 .tag-steg     { background: rgba(236,72,153,0.08); color: #ec4899; }
+.tag-realist  { background: rgba(99,102,241,0.1);  color: #6366f1; }
 
 /* DIFFICULTY */
 .diff {
