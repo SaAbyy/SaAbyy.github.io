@@ -1,5 +1,5 @@
 ---
-title: "TryHackMe - Reset"
+title: "Reset"
 date: 2025-10-22
 platform: TryHackMe
 category: realist
