@@ -71,7 +71,7 @@ Et on récupère le flag :
 
 **Cible :** `10.0.10.19`  
 **Credentials :** `maison3185_404Player` / `&!%dlalqm4380L`
-**AXFR bloqué ≠ DNS opaque.** Sur un AD Windows, les enregistrements DNS sont stockés dans LDAP sous `DomainDnsZones`.
+J'ai tenté un transfert de zone sans succès, mais **AXFR bloqué ≠ DNS opaque.** Sur un AD, les enregistrements DNS sont stockés dans LDAP sous `DomainDnsZones`.
 
 ```bash
 ldapsearch -x -H ldap://10.0.10.19 -D "maison3185_404Player@ctfcorp.local" -w '&!%dlalqm4380L' -b "CN=MicrosoftDNS,DC=DomainDnsZones,DC=ctfcorp,DC=local" "(objectClass=dnsNode)" dc dnsRecord | grep "^dc:"
