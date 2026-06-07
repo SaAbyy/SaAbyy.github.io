@@ -166,7 +166,7 @@ smbclient.py -hashes aad3b435b51404eeaad3b435b51404ee:2b576acbe6bcfda7294d6bd180
 
 ---
 
-## Protocole Pasteur \[2/3\] — Silver Ticket
+## Protocole Pasteur \[2/3\]
 
 **Cible :** `10.0.10.190`  
 **Credentials :** `accord6490_404Player` / `L5883dpefus&@#`
