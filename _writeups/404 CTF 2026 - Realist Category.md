@@ -5,7 +5,7 @@ platform: 404CTF 2026
 category: realist
 difficulty: hard
 tags: [ActiveDirectory, ADCS, DPAPI, Kerberos, GPP, SilverTicket, SMB]
-description: "Writeup des challenges réalistes AD du 404CTF 2026 — énumération, GPP decrypt, ADIDNS, Named Pipe, ESC1 ADCS, Kerberoasting AES, Silver Ticket et DPAPI."
+description: "Writeup des challenges réalistes AD du 404CTF 2026 : énumération, GPP decrypt, ADIDNS, Named Pipe, ESC1 ADCS, Kerberoasting AES, Silver Ticket et DPAPI."
 ---
 
 ## Les Cahiers de Curie
