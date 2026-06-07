@@ -1,5 +1,5 @@
 ---
-title: Challenges Réalistes Active Directory"
+title: Challenges Réalistes (Active Directory)
 date: 2026-06-07
 platform: 404CTF 2026
 category: realist
