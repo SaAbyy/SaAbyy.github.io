@@ -40,6 +40,7 @@ permalink: /about/
       <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--text-muted);line-height:2.2;">
         <div><span style="color:var(--accent);">[✓]</span> HTB ProLab — <a href="https://app.hackthebox.com/prolabs/4" class="info-link">Dante</a> <span style="color:var(--dim);font-size:11px;">· AD · Pivoting · Multi-machines</span></div>
         <div><span style="color:var(--accent);">[✓]</span> HTB ProLab — <a href="https://app.hackthebox.com/prolabs/11" class="info-link">P.O.O</a> <span style="color:var(--dim);font-size:11px;">· Windows AD · PrivEsc</span></div>
+        <div><span style="color:var(--accent);">[✓]</span> PT1 TryHackMe — <a href="https://tryhackme.com/certification/junior-penetration-tester" class="info-link">PT1</a> <span style="color:var(--dim);font-size:11px;">· AppSec · NetSec · Active Directory</span></div>
       </div>
     </div>
 
